@@ -1,0 +1,43 @@
+all:
+  children:
+    AVD_LAB:
+      children:
+        CVP:
+          hosts:
+            cv_server:
+# DC1 Fabric
+        TP_FABRIC:
+          children:
+            TP_SPINES:
+              hosts:
+                tp-avd-spine1:
+                  ansible_host: 192.2.0.212
+                tp-avd-spine2:
+                  ansible_host: 192.2.0.213
+            TP_LEAFS:
+              children:
+                TP_LEAF1:
+                  hosts:
+                    tp-avd-leaf1:
+                      ansible_host: 192.2.0.214
+                    tp-avd-leaf2:
+                      ansible_host: 192.2.0.215
+                TP_LEAF2:
+                  hosts:
+                    tp-avd-leaf3:
+                      ansible_host: 192.2.0.216
+                    tp-avd-leaf4:
+                      ansible_host: 192.2.0.217
+          vars:
+            ansible_connection: httpapi
+            ansible_network_os: eos
+            ansible_become: yes
+            ansible_become_method: enable
+            ansible_httpapi_use_ssl: true
+            ansible_httpapi_validate_certs: false
+        TP_TENANTS_NETWORKS:
+          children:
+            TP_LEAFS:
+        TP_SERVERS:
+          children:
+            TP_LEAFS:

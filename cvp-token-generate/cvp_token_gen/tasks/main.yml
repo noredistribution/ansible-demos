@@ -1,0 +1,28 @@
+---
+- name: "Generating TerminAttr onboarding token on onprem instance"
+  tags: [build]
+  ansible.builtin.uri:
+    url: "{{ cvp_device_api }}"
+    method: POST
+    headers:
+      Accept: "application/json"
+      Cookie: "access_token={{ cvp_token }}"
+    validate_certs: no
+    return_content: yes
+    body: '{"reenrollDevices": ["*"], "duration": "720h"}'
+  register: token
+  until: token.status == 200
+  retries: 10
+  delay: 2
+# Writing onprem token to file
+- name: debug token
+  debug: var=token
+- name: "Parsing CVP token"
+  tags: [rapi]
+  set_fact:
+    token: "{{ token.content | list | join }}"
+- name: "Writing onprem token to file"
+  tags: [rapi]
+  copy:
+    content: "{{ token.data }}"
+    dest: "{{onboarding_token_dir}}/{{cv_server}}.tok"

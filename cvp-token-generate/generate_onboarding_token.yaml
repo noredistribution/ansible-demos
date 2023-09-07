@@ -1,0 +1,63 @@
+---
+# Playbook 1 - Generate onboarding token
+- name: Configuration deployment with CVP
+  hosts: cv_server
+  connection: local
+  tags: [deploy]
+  gather_facts: no
+  tasks:
+    - name: run CVP token generation
+      import_role:
+          name: cvp_token_gen
+# Playbook 2 - Copy onboarding token to devices
+- hosts: TP_FABRIC
+  vars:
+    ansible_user: arista
+    ansible_password: arista
+    ansible_connection: network_cli
+    ansible_httpapi_use_ssl: True
+    ansible_httpapi_validate_certs: False
+    ansible_network_os: eos
+    ansible_httpapi_port: 443
+    ansible_python_interpreter: $(which python3)
+    onboarding_token_dir: 'onboarding_token_dir'
+  tasks:
+  # Using SCP to copy the token to the devices
+  # Note: there can be socket errors with certain versions of ansible and ansbile.netcommon
+  # - name: Copy on-prem token
+  #   net_put:
+  #     src: "{{onboarding_token_dir}}/{{hostvars.cv_server.ansible_host}}.tok"
+  #     dest: "/tmp/token"
+  # creating files via eAPI is preferred as it always sets the correct permissions on the tokens"
+    - name: "Copy onboarding tokens"
+      tags: [copy]
+      ansible.builtin.uri:
+        url: "https://{{ansible_user}}:{{ansible_password}}@{{hostvars[inventory_hostname].ansible_host}}/command-api"
+        method: POST
+        headers:
+          Accept: "application/json"
+        validate_certs: no
+        return_content: yes
+        force_basic_auth: true
+        body:
+          jsonrpc: "2.0"
+          method: "runCmds"
+          params:
+            version: 1
+            cmds:
+            - "enable"
+            - cmd: "copy terminal: file:/tmp/token"
+              input: "{{lookup('file', onboarding_token_dir + '/' + hostvars.cv_server.ansible_host + '.tok')}}"
+            format: json
+            timestamps: false
+            autoComplete: false
+            expandAliases: false
+            stopOnError: false
+            streaming: false
+            includeErrorDetail: false
+          id: EapiExplorer-1
+        body_format: json
+      register: cv_onboarding_token
+      until: cv_onboarding_token.status == 200
+      retries: 10
+      delay: 2

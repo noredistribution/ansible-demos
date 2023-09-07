@@ -1,0 +1,7 @@
+---
+# vars file for cvp_token_gen
+cvp_token: "{{lookup('file', token_dir + '/svcacc.tok')}}"
+cv_server: "{{hostvars['cv_server']['ansible_host']}}"
+cvp_device_api: "https://{{ cv_server }}/cvpservice/enroll/createToken"
+onboarding_token_dir: 'onboarding_token_dir'
+token_dir: 'token_dir'
